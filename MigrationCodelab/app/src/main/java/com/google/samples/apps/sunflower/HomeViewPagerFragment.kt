@@ -29,7 +29,7 @@ import com.google.samples.apps.sunflower.adapters.SunflowerPagerAdapter
 import com.google.samples.apps.sunflower.databinding.FragmentViewPagerBinding
 
 class HomeViewPagerFragment : Fragment() {
-
+	//test
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
