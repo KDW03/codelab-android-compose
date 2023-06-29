@@ -1,0 +1,119 @@
+Jetpack Compose는 처음부터 뷰 상호 운용성을 고려하여 설계
+
+권장되는 이전 전략
+1. Compose를 사용하여 새로운 기능 빌드
+2. 기능을 빌드하면서 재사용 가능한 요소를 식별하고 공통 UI 구성요소의 라이브러리 만들기
+3. 기존 기능을 한 번에 한 화면씩 대체
+
+Compose를 사용하여 새로운 기능 빌드
+
+공유 구성요소가 단일 정보 소스를 가지도록 앱 전체에서 재사용을 촉진할 수 있는 재사용 가능한 구성요소를 파악하는 것이 좋다
+그러면 빌드하는 새 기능이 라이브러리에 종속될 수 있다.
+
+
+Android Studio가 Compose와 함께 작동하도록 buildFeatures { compose true } 플래그를 사용
+
+setContent 메서드를 사용하여 Compose UI 콘텐츠를 호스팅할 수 있는 Android 뷰인 COmposeView를 사용
+
+데이터 결합 라이브러리는 프로그래매틱 방식이 아니라 선언적 형식으로 레이아웃의 UI 구성요소를 앱의 데이터 소스와 결합할 수 있는 지원 라이브러리
+
+wrapContentWidth(Alignment.CenterHorizontally) = 텍스트가 가로로 화면 가운데 표시되도록 하는데 사용된다.
+
+화면 수준 컴포저블에서만 ViewModel을 참조해야 한다
+하위 컴포저블에 ViewModel의 데이터가 필요한 경우 전체 ViewModel 대신 하위 컴포저블에 필요한 데이터만 전달하는 것이 좋다
+
+컴포저블에는 자체 ViewModel 인스턴스가 없으므로 컴포저블과 Compose 코드를 호스팅하는 수명 주기 소유자 간에 동일한 인스턴스가 공유
+컴포저블에서 LiveData를 관찰하려면 LiveData.observeAsState() 함수를 사용
+
+
+LiveData 는 Lifecycle 라이브러리 중 하나로, 안드로이드 공통의 라이프사이클과 관련된 문제를 해결할 수 있게 해 주면서 앱 개발시 보다 더 유지보수하기 쉽게, 테스트하기 쉽게 만들어주는 라이브러리
+LiveData 는 생명주기의 변화를 인식,  Activity, Fragment, Service 등 안드로이드 컴포넌트의 생명 주기 인식을 통해 Active 상태에 있는 컴포넌트에서만 업데이트
+
+생명 주기가 끝나는 즉시 관찰을 멈추기 때문에 누수를 걱정 x
+LiveData 는 옵저버 패턴을 따르기에 LiveData 는 관찰 대상인 데이터가 변경될 때 Observer 객체에 알림
+생명 주기가 비활성화(Inactive)되었다가 다시 활성화(Active)될 때 최신 데이터를 수신
+
+클린 아키텍처에서 계층 간의 의존성은 한쪽으로만 발생
+Presentation 계층에서는 Domain 계층을 알지만, 그 반대인 Domain 계층은 Presentation 계층을 알면 안된다.
+
+디자인 패턴인 MVVM 패턴이나 MVP 패턴 등은 Presentation Layer 에 포함되는 패턴
+MVVM 과 클린 아키텍처 함께 적용이 가능한 부분
+
+Presentation Layer
+UI 와 관련된 부분을 담당, Activity, Fragment, View, ViewModel 등을 포함
+Activity 와 Fragment 는 View 의 역할을 하는, 다시 말해 데이터를 소유하는 것이 아니라 데이터를 표시하기만 하는 역할을 하므로 LiveData 인스턴스를 보유해서는 안 된다.
+LiveData 객체는 주로 AAC ViewModel 에서 관리
+
+Data Layer
+Domain 계층의 Repository 인터페이스 구현 포함, 데이터베이스(Local)와 서버(Remote)와의 통신도 Data 계층에서 이루어짐
+Mapper 클래스를 두어 Data Layer 의 모델을 Domain 계층의 모델로 변환해주는 역할
+
+모든 LiveData 의 관찰은 오직 Main Thread 에서만 진행
+Repository 에서는 LiveData 를 사용하지 않도록 권장하면서 동시에 Kotlin Flow 를 사용하도록 권장
+
+Domain Layer
+어플리케이션의 비즈니스 로직에서 필요한 UseCase 와 Model 을 포함,독립적으로 분리
+Domain 계층은 안드로이드에 의존성을 가지지 않은 순수 Java 및 Kotlin 코드로만 구성
+
+여기에는 Repository 인터페이스도 포함
+
+요약을 하자면 클린 아키텍처 관점에서 LiveData 의 문제점
+LiveData 는 UI 에 밀접하게 연관,Data Layer 에서 비동기 방식으로 데이터를 처리하기에 자연스러운 방법이 없다
+LiveData 는 안드로이드 플랫폼에 속해 있기 때문에 순수 Java / Kotlin 을 사용해야 하는 Domain Layer 에서 사용하기에 적합 x
+
+StateFlow 와 SharedFlow
+StateFlow 는 현재 상태와 새로운 상태 업데이트를 collector 에 내보내는 Observable 한 State holder flow
+그리고 LiveData 와 마찬가지로 value 프로퍼티를 통해서 현재 상태 값을 읽을 수 있다
+
+StateFlow 는 항상 값을 가지고 있고, 오직 한 가지 값
+StateFlow 는 여러 개의 collector 를 지원
+StateFlow 는 collector 수에 관계없이 항상 구독하고 있는 것의 최신 값
+StateFlow 는 flow builder 를 사용하여 빌드된 flow 가 cold stream 이었던 것과 달리, hot stream
+StateFlow 는 마지막 값의 개념이 있으며 생성하자마자 활성화
+
+StateFlow 와 LiveData 는 둘 다 관찰 가능한 데이터 홀더 클래스
+
+StateFlow 와 LiveData 는 다음과 같이 다르게 작동
+StateFlow 의 경우 초기 상태를 생성자에 전달해야 하지만, LiveData 의 경우는 전달하지 않아도 된다
+
+View 가 STOPPED 상태가 되면 LiveData.observe() 는 Observer 를 자동으로 등록 취소하는 반면,
+StateFlow 는 자동으로 collect 를 중지하지 않습니다. 만약 동일한 동작을 실행하려면 Lifecycle.repeatOnLifecycle 블록에서 흐름을 수집해야 함
+
+ stateIn() 함수를 사용하여 Flow 를 StateFlow 객체로 변환
+
+LiveData 를 StateFlow 로 사용했을 때 얻게 되는 이점
+
+안드로이드 플랫폼에 종속적이었던 LiveData 와는 달리, StateFlow 는 순수 kotlin 라이브러리이기 때문에 Domain Layer 에서 사용
+코루틴을 통해 Work Thread 에서도 비용이 많이 드는 데이터 스트림을 처리할 수 있기 때문에 Data Layer 에서 LiveData 를 사용하는 것보다 향상된 성능
+StateFlow 는 zip, flatMapMerge 등 다양한 Flow API 를 사용할 수 있기 때문에 LiveData 보다 풍부하게 활용
+
+
+LiveData.observeAsState()는 LiveData 관찰을 시작하고 값을 State 객체로 표현합니다. LiveData에 새 값이 게시될 때마다 반환된 State가 업데이트되어 모든 State.value 사용이 재구성
+LiveData에서 내보낸 값은 null일 수 있으므로, 사용을 null 검사로 래핑해야 합니다. 이 때문에 재사용을 위해 LiveData 소비를 분할하고 여러 컴포저블에서 리슨하는 것이 좋다
+
+
+pluralStringResource 함수는 특정 수량에 대한 복수형 문자열을 로드하는 데 사용
+Compose는 아직 HTML 코드를 렌더링할 수 없으므로 프로그래매틱 방식으로 TextView를 만들어 AndroidView API를 사용하여 정확히 렌더링
+
+두 가지 이유로 프래그먼트에서 ComposeView가 사용될 때에는 바람직x
+컴포지션은 Compose UI View 유형을 위한 프래그먼트의 뷰 수명 주기에 따라 상태를 저장
+전환이 발생할 때 기본 ComposeView가 분리된 상태가 됩니다. 그러나 이러한 전환 중에도 Compose UI 요소는 계속 표시
+
+Material 테마는 Compose와 함께 제공되는 모든 Material Design 구성요소와 완벽하게 호환
+Compose에서 고유 Material 테마를 처음부터 재작성하는 대신 뷰 시스템에 사용할 수 있는 테마를 Compose에서 상속
+
+
+Compose에서 뷰 시스템 Material Design 구성요소(MDC) 테마를 재사용하려면 Accompanist Material 테마 어댑터 라이브러리를 사용
+MdcTheme 함수는 호스트 컨텍스트의 MDC 테마를 자동으로 읽고 사용자를 대신하여 밝은 테마와 어두운 테마 모두를 위해 MaterialTheme으로 전달
+
+실제 앱에서는 테스트 없이 기존 코드를 재작성해서는 안 됩니다.
+또한 코드를 Compose로 이전하는 동안 테스트를 리팩터링하고 녹색으로 유지
+
+활동 또는 프래그먼트에 Compose를 사용한다면 ActivityScenarioRule을 사용하는 대신 ComposeTestRule을 ActivityScenarioRule과 통합하는 createAndroidComposeRule을 사용
+
+
+
+
+
+
+
