@@ -1,0 +1,110 @@
+UI 도구 키트인 Compose를 사용하면 앱 디자인을 쉽게 구현
+padding, fillMaxWidth, size와 같은 수정자를 사용하여 레이아웃을 보강
+
+수정자를 사용하여 컴포저블을 보강하는 방법
+Column 및 LazyRow와 같은 표준 레이아웃 구성요소로 하위 컴포저블을 배치하는 방법
+정렬과 배치로 상위 요소 내에서 하위 컴포저블의 위치를 변경하는 방법
+Scaffold 및 하단 탐색과 같은 Material 컴포저블을 사용하여 포괄적인 레이아웃을 만드는 방법
+슬롯 API를 사용하여 유연한 컴포저블을 빌드하는 방법
+
+Compose 가이드라인 권장사항으로 composable 함수가 modifier 매개변수를 받음
+이 방식을 사용하면 메서드의 호출자가 컴포저블의 디자인과 분위기를 수정할 수 있어 유연성이 높아지고 재사용이 가능
+
+수정자를 사용하여 다음을 한다
+- 컴포저블의 크기, 레이아웃, 동작, 모양 변경
+- 접근성 라벨과 같은 정보 추가
+- 사용자 입력 처리
+- 요소를 클릭 가능, 스크롤 가능, 드래그 가능 또는 확대/축소 가능하게 만드는 것과 같은 높은 수준의 상호작용 추가
+
+heightIn 수정자로 컴포저블에 특정 최소 높이 지정 ,사용자가 시스템 글꼴 크기를 확대하면 크기가 커짐
+
+fillMaxWidth 수정자 : 상위 요소의 전체 가로 공간을 차지
+
+TextField에는 다른 컴포저블을 받는 매개변수 leadingIcon
+내부에 Icon을 설정 가능
+
+TextFieldDefaults.textFieldColors를 사용하여
+텍스트 필드의 배경색을 MaterialTheme의 surface 색으로 설정
+
+자리표시자 텍스트 Search를 추가
+
+고정 높이가 아닌 최소 높이를 설정 이렇게 하면 사용자가 시스템 설정에서 글꼴 크기를 늘릴 경우 텍스트 필드의 크기가 커질 수 있게 되므로 권장되는 방식
+
+size 및 clip 수정자와 contentScale 매개변수를 사용하여 Image 컴포저블을 조정
+size 수정자는 앞 단계에서 본 fillMaxWidth 및 heightIn 수정자와 마찬가지로 특정 크기에 맞게 컴포저블을 조정
+clip 수정자는 이와 달리 컴포저블의 모양을 조정
+
+이미지의 크기도 올바르게 조정해야 합니다. Image의 contentScale 매개변수를 사용
+
+화면의 배경과 다른 배경색이 적용
+모서리는 둥글게 처리
+이러한 컨테이너로는 Material의 Surface 컴포저블을 사용
+
+Surface는 Compose Material 라이브러리의 구성요소
+일반적인 Material Design 패턴을 따르며, 앱의 테마를 변경하여 조정할 수 있다
+
+Surface는 매개변수와 수정자를 설정하여 필요에 맞게 조정
+여기서는 모서리를 둥글게 처리해야 합니다. 이를 위해 shape 매개변수를 사용
+
+앞 단계의 이미지처럼 모양을 Shape로 설정하는 대신, Material 테마의 값을 사용
+
+MaterialTheme.shapes는 small, medium, large 세 가지 크기의 Shape 객체를 제공
+Shape 객체는 모서리의 둥근 정도
+
+Card와 Surface는 모두 Jetpack Compose의 컴포저블로, 비슷한 기능을 제공합니다. 둘 다 다른 컴포저블의 배경색, 모서리 둥근 정도, 그림자 등을 설정하는 데 사용
+하지만 Card는 Surface보다 더 많은 기능을 제공합니다. 예를 들어, Card는 클릭 이벤트를 처리하고, 리프트 업(Lift up) 효과를 제공합니다. 또한, Card는 Material Design 가이드라인에 따라 디자인되어 있어, 일관된 UI
+
+LazyRow의 하위 요소는 컴포저블이 아니다
+대신 컴포저블을 목록 항목으로 내보내는 item 및 items와 같은 메서드를 제공하는 Lazy 목록 DSL을 사용
+
+Arrangement.spacedBy() 메서드를 사용하여 각 하위 컴포저블 사이에 고정된 공간을 추가
+
+
+LazyHorizontalGrid는 수평 방향으로 스크롤 가능한 그리드 레이아웃
+LazyRow를 중첩한듯한 효과
+
+rows: 그리드의 행 수를 지정, GridCells.Fixed(2)는 그리드가 2개의 행을 가지도록 지정
+contentPadding: 그리드의 컨텐츠와 그리드의 경계 사이를 패딩을 지정,PaddingValues(horizontal = 16.dp)는 좌우 패딩을 16.dp로 지정
+horizontalArrangement: 그리드의 수평 방향 정렬을 지정 ,Arrangement.spacedBy(8.dp)는 그리드의 아이템 사이에 8.dp의 간격을 두도록 지정
+verticalArrangement: 그리드의 수직 방향 정렬을 지정, Arrangement.spacedBy(8.dp)는 그리드의 아이템 사이에 8.dp의 간격을 두도록 지정
+
+슬롯 기반 레이아웃은 개발자가 원하는 대로 채울 수 있도록 UI에 빈 공간을 남겨 둔다
+컴포저블의 자식들을 미리 정의된 슬롯(slot)에 배치하는 방식
+
+슬롯 기반 레이아웃은 Scaffold와 같은 컴포저블에서 사용
+예를 들어, Scaffold 컴포저블은 topBar, bottomBar, drawerContent, floatingActionButton 등의 슬롯을 제공
+이러한 슬롯에 컴포저블을 배치하면 Scaffold 컴포저블이 자동으로 레이아웃을 조정
+
+컴포저블이 채울 수 있는 슬롯을 여러 개 제공한다면 더 큰 컴포저블 컨테이너에서 각각의 기능을 나타내는 의미 있는 이름을 지정
+예를 들어 Material의 TopAppBar는 title, navigationIcon, actions 슬롯을 제공
+
+텍스트의 베이스라인은 글꼴의 기준선으로, 문자가 배치되는 라인을 의미합니다. 일반적으로 텍스트의 베이스라인은 문자의 아래쪽에 위치
+paddingFromBaseline 수정자는 텍스트의 베이스라인으로부터 패딩을 지정하는 데 사용
+
+기기의 높이가 작을 경우(예: 가로 모드)에 대비하여 세로 방향으로 스크롤할 수 있어야 합니다. 이렇게 하려면 스크롤 동작을 추가
+LazyRow 및 LazyHorizontalGrid와 같은 Lazy 레이아웃은 자동으로 스크롤 동작을 추가
+
+일반적으로, 목록에 포함된 요소가 많거나 로드해야 할 데이터 세트가 많아서 모든 항목을 동시에 내보내면 성능이 저하되고 앱이 느려지게 되는 경우에 Lazy 레이아웃을 사용
+목록에 포함된 요소의 개수가 많지 않은 경우에는 간단한 Column 또는 Row를 사용하고 스크롤 동작을 수동으로 추가
+
+이렇게 하려면 verticalScroll 또는 horizontalScroll 수정자를 사용
+이를 위해서는 스크롤의 현재 상태를 포함하며 외부에서 스크롤 상태를 수정하는 데 사용되는 ScrollState가 필요
+
+여기서는 스크롤 상태를 수정할 필요가 없으므로 rememberScrollState를 사용하여 영구 ScrollState 인스턴스를 만들면 된다.
+
+
+하단 탐색
+BottomNavigation 컴포저블 내에서 하나 이상의 BottomNavigationItem 요소를 추가하면 Material 라이브러리에 의해 자동으로 스타일이 지정
+BttomNavigation안에 NottomNavigationItem 구현
+
+
+Scaffold는 Material Design을 구현하는 앱을 위한 구성 가능한 최상위 수준 컴포저블을 제공
+Scaffold는 상단 앱 바(top app bar), 하단 탐색 바(bottom navigation bar), 드로어(drawer), 플로팅 액션 버튼(floating action button) 등의 슬롯(slot)을 제공
+Scaffold를 사용하면 Material Design 가이드라인에 따른 일관된 UI를 쉽게 구현
+
+
+
+
+
+
+
