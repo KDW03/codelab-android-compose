@@ -1,0 +1,156 @@
+UI 상태 생성은 앱이 데이터 영역에 액세스하고 필요한 경우 비즈니스 규칙을 적용하며 UI에서 사용하는 UI 상태를 노출하는 프로세스
+UI 상태 생성은 앱의 데이터를 가져와서 UI에서 사용할 수 있는 형태로 변환하는 과정
+
+예를 들어, 앱이 서버에서 사용자 정보를 가져온다고 가정
+이 정보는 JSON 형식으로 전달될 수 있습니다. UI 상태 생성 과정에서는 이 JSON 데이터를 파싱하여 사용자 정보 객체로 변환
+필요한 경우 비즈니스 규칙을 적용하여 최종적으로 UI에서 사용할 수 있는 상태
+
+UI 상태 생성을 통해 앱의 데이터와 UI 사이의 연결을 관리
+
+일반적으로 Kotlin의 StateFlow를 사용하여 UI 상태를 생성하는 것이 좋다
+- 반응형 : StateFlow는 여러 옵저버가 관찰할 수 있는 반응형 값 스트림. 즉 StateFlow 값이 변경되면 관차자들에게 자동으로 알림이 전달
+- 일관성 : StateFlow는 일관성 있는 상태 변경을 제공 즉, StateFlow의 값이 변경되면 모든 관찰자들이 동일한 값을 볼 수 있다.
+
+State와 MutableState는 Composable 함수 내에서만 작동
+즉, Composable 함수의 범위를 벗어나면 사용할 수 없습니다. 따라서, 전역 상태 변경을 처리하는 데는 적합하지 않습니다.
+
+또한, State와 MutableState는 여러 옵저버가 관찰할 수 없습니다. 즉, State의 값이 변경되더라도 관찰자들에게 자동으로 알림이 전달되지 않는다.
+따라서, 로컬 상태 변경을 처리하는 경우에는 State 또는 MutableState를 사용할 수 있지만, 전역 상태 변경을 처리하는 경우에는 StateFlow를 사용하는 것이 좋다
+
+내부적으로 변경 가능한 변수를 사용하는 동안 읽기 전용 변수를 노출하는 것이 좋습니다. 이렇게 하면 정보 소스가 하나가 되어 ViewModel을 통하지 않는 한 UI 상태를 수정할 수 없다
+확장 함수 asStateFlow는 변경 가능한 흐름을 변경 불가능한 흐름으로 변환
+
+collectAsStateWithLifecycle()은 StateFlow에서 값을 수집하고 수명 주기를 인식하는 방식으로 Compose의 State API 를 통해 최신 값을 나타낸다
+collectAsStateWithLifecycle API를 사용하려면 종속 항목 추가 필요
+
+복잡한 데이터 처리는 LiveData로 적절하지 않다
+Flow는 다양한 연산자를 사용하여 복잡한 데이터 처리를 지원한다.
+따라서 복잡한 비동기 작업이 포함될 수 있는 데이터 흐름을 처리하거나 간단하지 않은 transformation이 필요한 경우 Flow 사용
+
+flowOn은 해당 flow 비동기작업을 처리할 스레드 지정
+
+Flow와 StateFlow의 차이점
+Flow는 데이터의 흐름을 발생시키기만 할 뿐 데이터 저장 x
+StateFlow는 현재 상태와 새로운 상태 업데이트를 수집기에 내보내는 관찰 가능한 상태 홀더 흐름
+따라서 StateFlow를 사용함으로써 Flow의 보일러 플레이트 코드를 만들어내던 것을 보안
+1. (화면이 재구성 될때마다 다시 서버 혹은 DB로부터 데이터 가져오기)
+2. (Flow로부터 collect한 데이터를 ViewModel에 저장해놓고 사용하기)
+
+StateFlow는 데이터 홀더 역할을 하면서 Flow의 데이터 스트림 역할까지
+UI는 단순히 StateFlowㄹ르 구독 하고 있으면 되는 것 따라서 화면이 재구성될 때 마다 다시 서버로 데이터를 요청하는 거나 따로 저장해놓는 보일러플레이트 코드가 삭제됌
+
+코루틴은 Android에서 비동기 작업을 수행하는 데 권장되는 방법
+앱은 일반적으로 시작할 때 백그라운드에서 항목을 로드하기 위해 코루틴을 사용
+Jetpack Compose는 UI 레이어 내에서 코루틴을 안전하게 사용하도록 하는 API 제공
+
+Compose의 부작용은 구성 가능한 함수의 범위 밖에서 발생하는 앱 상태에 관한 변경사항
+
+컴포저블 내에서 안전하게 정지 함수를 호출하려면 Compose에서 코루틴 범위의 부작용을 트리거하는 LaunchedEffect API 사용
+LaunchedEffect가 Composition에 들어가면 매개변수로 전달된 코드 블록으로 코루틴을 시작
+LaunchedEffect가 컴포지션에서 벗어나면 코루틴이 취소된다.
+
+예를 들어, Snackbar를 Scaffold에서 보여주는 것은 SnackbarHostState.showSnackbar 함수를 사용
+이 showSnackbar는 suspend함수
+이러한 suspend 함수를 안전하게 호출하기 위해 LaunchedEffect를 사용
+
+@Composable
+fun MyScreen(scaffoldState: ScaffoldState) {
+    LaunchedEffect(Unit) {
+        scaffoldState.snackbarHostState.showSnackbar("Hello World!")
+    }
+}
+
+LaunchedEffect가 Composition에 들어가면서 코루틴이 시작
+showSnackbar 함수가 호출
+
+Composable 함수 내에서 suspend 함수를 직접 호출하는 것은 안전하지 않다
+Composable 함수는 여러 번 다시 구성될 수 있으며, 이로 인해 suspend 함수가 예기치 않게 여러 번 호출
+또한, Composable 함수가 Composition에서 벗어날 때 suspend 함수가 취소되지 않을 수도 있다
+Composition에서 벗어난다는 것은 Composable 함수가 더 이상 Compostion의 일부가 아니게 된다는 것을 의미
+즉, Composable 함수가 ui 계층 구조에서 제거된다는 것
+
+
+
+@Composable
+fun MyScreen(scaffoldState: ScaffoldState) {
+    viewModelScope.launch {
+        scaffoldState.snackbarHostState.showSnackbar("Hello, World")
+    }
+}
+
+LaunchedEffect는 Composition에 들어갈 때 코루틴을 시작하고, Composition에서 벗어날 때 코루틴을 취소
+LaunchedEffect의 key 매개변수는 LaunchedEffect가 다시 시작될 조건을 결정하는 데 사용
+key 값이 변경될 때마다 LaunchedEffect가 다시 시작
+
+LaunchedEffect가 한 번만 실행되어야 한다면 key 매개변수로 Unit 값을 전달
+rememberUpdatedState 함수는 Composable 함수의 매개변수를 Effect 내에서 안전하게 참조하기 위해 사용
+rememberUpdatedState 함수는 매개변수로 전달된 값을 저장하고, 이 값을 Composition이 다시 수행될 때마다 업데이트
+만약 사용하지 않는다면 매개변수가 변경되도 effect가 다시 시작되지 않으면 참조하는 매개변수의 값이 업데이트되지 않는다.
+
+따라서 rememberUpdatedState 함수를 사용하여 Composable 함수의 매개변수를 안전하게 참조하는 것이 좋다.
+
+scaffoldState.drawerState.open() 등이 suspend 함수로 작성된 이유는 시간이 지남에 따라 발생하는 개념인 애니메이션을 수행하는 데 사용되기 때문
+
+LaunchedEffect vs rememberCoroutineScope
+LaunchedEffect와 rememberCoroutineScope는 모두 코루틴을 시작하는 데 사용
+
+LaunchedEffect는 Composable 함수 내에서 suspend 함수를 안전하게 호출하기 위해 사용
+rememberCoroutineScope는 Composable 함수 외부에서 코루틴을 시작하기 위해 사용
+
+rememberCoroutineScope 함수를 호출하면 Composition의 호출 지점에 바인딩된 CoroutineScope이 반환
+CoroutineScope을 사용하여 코루틴을 시작
+
+LaunchedEffect와 rememberCoroutineScope의 차이점은 Composition과의 관계
+
+
+
+컴포지션 외부에 있는 일반 콜백에서 코루틴을 만들기 위한 호출을 트리거했기 때문에 LaunchedEffect를 사용할 수 없었습니다.
+
+컴포저블의 내부 상태를 담당하는 상태 홀더를 만들어 모든 상태 변경사항을 한 곳으로 중앙화할 수 있다.
+이렇게 하면 상태가 쉽게 동기화되고 로직도 모두 단일 클래스로 그룹화
+상태 홀더의 상태는 쉽게 끌어올릴 수 있으므로 Composable 함수의 호출자로부터 사용될 수 있다
+
+상태 홀더가 항상 기억되어야 컴포지션에서 유지되고 매번 새로 만들 필요가 없다.
+
+rememberSaveable 함수를 사용하여 Composable 함수의 상태를 저장하고 복원할 수 있다
+rememberSaveable 함수는 기본적으로 primitive 타입과 일부 컬렉션 타입을 자동으로 저장하고 복원
+따라서 이러한 타입의 상태를 저장하고 복원하는 경우에는 rememberSaveable 함수만 사용해도 충분
+
+하지만, rememberSaveable 함수가 지원하지 않는 타입의 상태를 저장하고 복원하려면 Saver 인터페이스를 사용
+
+
+Saver는 Jetpack Compose에서 상태 저장을 위한 인터페이스
+Saver를 사용하면 Composable 함수의 상태를 저장하고 복원
+
+Saver 인터페이스는 두 개의 추상 메서드를 정의
+save 메서드는 상태를 저장하는 데 사용
+이 메서드는 상태 객체를 매개변수로 전달받아, 이 상태 객체를 Bundle에 저장할 수 있는 형태로 변환
+restore 메서드는 상태를 복원하는 데 사용
+이 메서드는 Bundle에 저장된 상태 객체를 매개변수로 전달받아, 이 상태 객체를 원래의 형태로 복원
+
+Saver 인터페이스를 구현하여 커스텀 Saver 객체를 생성할 수 있다.
+커스텀 Saver 객체를 사용하면 Composable 함수의 상태를 저장하고 복원하는 방법을 정의
+
+snapshotFlow API를 사용하여 Compose State<T> 객체를 Flow로 변환
+
+LocalContext를 사용하여 현재 context를 가져올 수 있다.
+LocalLifecycleOwner를 사용하여 현재 Lifecycle을 가져올 수 있다.
+DisposableEffect를 사용하여 MapView가 현재 Lifecycle을 따르도록 한다.
+
+getMapLifecycleObserver 함수를 사용하여 lifecycleObserver 객체를 생성하고, 이 객체를 현재 Lifecycle에 추가
+이후, DisposableEffect가 dispose될 때, 즉 해당 Composable이 사라질 때, lifecycleObserver 객체가 현재 Lifecycle에서 제거
+
+produceState는 non-Compose 상태를 Compose 상태로 변환하는 데 사용된다.
+이 API는 Compsotion에 scoped된 corutine을 실행하여 반환된 State에 값을 푸쉬가능
+ 예를 들어, Flow, LiveData 또는 RxJava와 같은 외부 구독 기반 상태를 Composition으로 가져오는 데 사용
+
+derivedStateOf,상태가 변경될 때마다 자동으로 업데이트되는 새로운 상태를 생성
+derivedStateOf로 생성된 상태의 업데이트는 해당 상태를 읽는 Composable만 다시 구성
+
+
+
+
+
+
+
+

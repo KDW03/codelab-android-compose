@@ -16,6 +16,7 @@
 
 package androidx.compose.samples.crane.base
 
+import android.view.accessibility.CaptioningManager.CaptionStyle
 import androidx.annotation.DrawableRes
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.LocalContentColor
@@ -24,34 +25,66 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.samples.crane.ui.captionTextStyle
 import androidx.compose.ui.graphics.SolidColor
 
+class EditableUserInputState(private val hint: String, initialText: String) {
+
+    var text by mutableStateOf(initialText)
+        private set
+    fun updateText(newText: String) {
+        text = newText
+    }
+
+    val isHint = text == hint
+
+    //save는 원래 값을 저장 가능한 값으로 변환
+    //restore는 복원된 값을 원본 클래스의 인스턴스로 변환
+    companion object {
+        val Saver: Saver<EditableUserInputState, *> = listSaver(
+            save = { listOf(it.hint, it.text) },
+            restore = {
+                EditableUserInputState(
+                    hint = it[0],
+                    initialText = it[1]
+                )
+            }
+        )
+    }
+
+}
+
+// 상태홀더가 컴포지션에서 유지되게 기억시키는 메서드
+@Composable
+fun rememberEditableUserInputState(hint: String): EditableUserInputState =
+    rememberSaveable(hint, saver = EditableUserInputState.Saver) {
+        EditableUserInputState(hint, hint)
+    }
+
+
 @Composable
 fun CraneEditableUserInput(
-    hint: String,
+    state: EditableUserInputState = rememberEditableUserInputState(""),
     caption: String? = null,
     @DrawableRes vectorImageId: Int? = null,
-    onInputChanged: (String) -> Unit
 ) {
-    // TODO Codelab: Encapsulate this state in a state holder
-    var textState by remember { mutableStateOf(hint) }
-    val isHint = { textState == hint }
 
     CraneBaseUserInput(
         caption = caption,
-        tintIcon = { !isHint() },
-        showCaption = { !isHint() },
+        tintIcon = { !state.isHint },
+        showCaption = { !state.isHint },
         vectorImageId = vectorImageId
     ) {
         BasicTextField(
-            value = textState,
+            value = state.text,
             onValueChange = {
-                textState = it
-                if (!isHint()) onInputChanged(textState)
+                state.updateText(it)
             },
-            textStyle = if (isHint()) {
+            textStyle = if (state.isHint) {
                 captionTextStyle.copy(color = LocalContentColor.current)
             } else {
                 MaterialTheme.typography.body1.copy(color = LocalContentColor.current)
@@ -60,3 +93,5 @@ fun CraneEditableUserInput(
         )
     }
 }
+
+
